@@ -30,6 +30,7 @@ static const sm9_bn_t SM9_FIVE = {5,0,0,0,0,0,0,0};
 // n =  b640000002a3a6f1d603ab4ff58ec74449f2934b18ea8beee56ee19cd69ecf25
 // mu_p = 2^512 // p = 167980e0beb5759a655f73aebdcd1312af2665f6d1e36081c71188f90d5c22146
 // mu_n = 2^512 // n
+// 小端方式
 const sm9_bn_t SM9_P = {0xe351457d, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
 const sm9_bn_t SM9_N = {0xd69ecf25, 0xe56ee19c, 0x18ea8bee, 0x49f2934b, 0xf58ec744, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
 static const sm9_bn_t SM9_P_MINUS_ONE = {0xe351457c, 0xe56f9b27, 0x1a7aeedb, 0x21f2934b, 0xf58ec745, 0xd603ab4f, 0x02a3a6f1, 0xb6400000};
@@ -238,16 +239,21 @@ void sm9_fp_tri(sm9_fp_t r, const sm9_fp_t a)
 	sm9_fp_add(r, t, a);
 }
 
+// r = a/2
 void sm9_fp_div2(sm9_fp_t r, const sm9_fp_t a)
 {
 	int i;
+	
 	sm9_bn_copy(r, a);
+	
 	if (r[0] & 0x01) {
 		sm9_bn_add(r, r, SM9_P);
 	}
+
 	for (i = 0; i < 7; i++) {
 		r[i] = (r[i] >> 1) | ((r[i + 1] & 0x01) << 31);
 	}
+
 	r[i] >>= 1;
 }
 
@@ -598,6 +604,7 @@ void sm9_fp2_mul_u(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b)
 	sm9_fp_copy(r[1], r1);
 }
 
+// a*k = (a1, a2)*k = (a1*k, a2*k)
 void sm9_fp2_mul_fp(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp_t k)
 {
 	sm9_fp_mul(r[0], a[0], k);
@@ -1556,9 +1563,14 @@ void sm9_point_mul_generator(SM9_POINT *R, const sm9_bn_t k)
 
 int sm9_point_print(FILE *fp, int fmt, int ind, const char *label, const SM9_POINT *P)
 {
-	uint8_t buf[65];
-	sm9_point_to_uncompressed_octets(P, buf);
-	format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
+	// uint8_t buf[65];
+	// sm9_point_to_uncompressed_octets(P, buf);
+	// format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
+	sm9_fp2_t x, y;
+	printf("\n%s\n", label);
+	sm9_point_get_xy(P, x, y);
+	sm9_fp2_print("x", x);
+	sm9_fp2_print("y", y);
 	return 1;
 }
 
@@ -1567,11 +1579,13 @@ int sm9_twist_point_print(FILE *fp, int fmt, int ind, const char *label, const S
 	// uint8_t buf[129];
 	// sm9_twist_point_to_uncompressed_octets(P, buf);
 	// format_bytes(fp, fmt, ind, label, buf, sizeof(buf));
+	sm9_fp2_t x, y;
 	printf("\n%s\n", label);
-	sm9_fp2_t xx, yy;
-	sm9_twist_point_get_xy(P, xx, yy);
-	sm9_fp2_print("twist_point_x", xx);
-	sm9_fp2_print("twist_point_y", yy);
+	sm9_twist_point_get_xy(P, x, y);
+	sm9_fp2_print("x", x);
+	sm9_fp2_print("y", y);
+
+
 	return 1;
 }
 
@@ -1854,28 +1868,27 @@ void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const SM9_TWIST_POINT *P
 	sm9_fp2_t t1;
 	sm9_fp2_t t2;
 
-
 	sm9_fp12_set_zero(num);
 	sm9_fp12_set_zero(den);
 
-	sm9_fp2_sqr(t0, ZP);
-	sm9_fp2_mul(t1, t0, ZP);
-	sm9_fp2_mul(b1, t1, YP);
+	sm9_fp2_sqr(t0, ZP);         // t0 = ZP^2
+	sm9_fp2_mul(t1, t0, ZP);     // t1 = ZP^3
+	sm9_fp2_mul(b1, t1, YP);     // b1 = ZP^3 * YP
 
-	sm9_fp2_mul_fp(t2, b1, yQ);
-	sm9_fp2_neg(a1, t2);
+	sm9_fp2_mul_fp(t2, b1, yQ);  // t2 = b1 * yQ = ZP^3 * YP * yQ
+	sm9_fp2_neg(a1, t2);         // a1 = - t2 = - (ZP^3 * YP * yQ)
 
-	sm9_fp2_sqr(t1, XP);
-	sm9_fp2_mul(t0, t0, t1);
-	sm9_fp2_mul_fp(t0, t0, xQ);
-	sm9_fp2_tri(t0, t0);
-	sm9_fp2_div2(a4, t0);
+	sm9_fp2_sqr(t1, XP);         // t1 = XP^2
+	sm9_fp2_mul(t0, t0, t1);     // t0 = ZP^2 * XP^2
+	sm9_fp2_mul_fp(t0, t0, xQ);  // t0 = ZP^2 * XP^2 * xQ
+	sm9_fp2_tri(t0, t0);         // t0 = t0^3 = (ZP^2 * XP^2 * xQ)^3
+	sm9_fp2_div2(a4, t0);        // a4 = t0 / 2 = (ZP^2 * XP^2 * xQ)^3 / 2
 
-	sm9_fp2_mul(t1, t1, XP);
-	sm9_fp2_tri(t1, t1);
-	sm9_fp2_div2(t1, t1);
-	sm9_fp2_sqr(t0, YP);
-	sm9_fp2_sub(a0, t0, t1);
+	sm9_fp2_mul(t1, t1, XP);     // t1 = XP^3
+	sm9_fp2_tri(t1, t1);         // t1 = XP^6
+	sm9_fp2_div2(t1, t1);        // t1 = XP^6 / 2
+	sm9_fp2_sqr(t0, YP);         // t0 = YP
+	sm9_fp2_sub(a0, t0, t1);     // a0 = t0 - t1 = YP - (XP^6 / 2)
 }
 
 void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const SM9_TWIST_POINT *T, const SM9_TWIST_POINT *P, const SM9_POINT *Q)
@@ -2021,13 +2034,20 @@ void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f)
 	sm9_fp12_copy(r, t0);
 }
 
+void f12p(char prefix[], sm9_fp12_t num,  sm9_fp12_t den){
+		sm9_fp12_t tmp;
+		sm9_fp12_inv(tmp, den);  // f_den = f_den^{-1}
+		sm9_fp12_mul(tmp, num, den);  // r = f_num*f_den = f
+		// printf("\n%d:g\n", i);
+		sm9_fp12_print(prefix, tmp);
+}
+
 // (P, Q) -> r
 void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 	// const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
-	const char *abits = "0010";
+	const char *abits = "1";
 
-	
 	SM9_TWIST_POINT _T, *T = &_T;
 	SM9_TWIST_POINT _Q1, *Q1 = &_Q1;
 	SM9_TWIST_POINT _Q2, *Q2 = &_Q2;
@@ -2041,6 +2061,8 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 	int i;
 
 	sm9_twist_point_copy(T, Q);
+	// sm9_twist_point_print(stdout, 1, 0, "Q", Q);
+	// sm9_twist_point_print(stdout, 1, 0, "COPY_Q", T);
 
 	sm9_fp12_set_one(f_num);
 	sm9_fp12_set_one(f_den);
@@ -2051,31 +2073,32 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 		sm9_fp12_sqr(f_den, f_den);
 		
 		// 打印f
-		sm9_fp12_inv(tmp, f_den);  // f_den = f_den^{-1}
-		sm9_fp12_mul(tmp, f_num, tmp);  // r = f_num*f_den = f
-		printf("\n%d:f^2\n", i);
-		sm9_fp12_print("tmp1", tmp);
+		f12p("1 f", f_num, f_den);
 
+		// sm9_point_print(stdout, 1, 0, "P1", P);
 		sm9_eval_g_tangent(g_num, g_den, T, P);  // g = g_{T,T}(P)
+
 		sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f^2 * g_{T,T}(P)
 		sm9_fp12_mul(f_den, f_den, g_den);
 
 		// 打印g
-		sm9_fp12_inv(tmp, g_den);  // f_den = f_den^{-1}
-		sm9_fp12_mul(tmp, g_num, tmp);  // r = f_num*f_den = f
-		printf("\n%d:g\n", i);
-		sm9_fp12_print("tmp1", tmp);
+		f12p("g", g_num, g_den);
+		f12p("2 f", f_num, f_den);
 
-		sm9_fp12_inv(tmp, f_den);  // f_den = f_den^{-1}
-		sm9_fp12_mul(tmp, f_num, tmp);  // r = f_num*f_den = f
-		printf("\n%d:f^2*g\n", i);
-		sm9_fp12_print("tmp1", tmp);
+		// sm9_fp12_inv(tmp, g_den);  // f_den = f_den^{-1}
+		// sm9_fp12_mul(tmp, g_num, tmp);  // r = f_num*f_den = f
+		// printf("\n%d:g\n", i);
+		// sm9_fp12_print("tmp1", tmp);
+
+		// sm9_fp12_inv(tmp, f_den);  // f_den = f_den^{-1}
+		// sm9_fp12_mul(tmp, f_num, tmp);  // r = f_num*f_den = f
+		// printf("\n%d:f^2*g\n", i);
+		// sm9_fp12_print("tmp1", tmp);
 
 		// T = [2]T
-		sm9_twist_point_dbl(T, T);
 		sm9_twist_point_print(stdout, 1, 0, "T", T);
-
-
+		sm9_twist_point_dbl(T, T);
+		sm9_twist_point_print(stdout, 1, 0, "[2]T", T);
 
 		if (abits[i] == '1') {
 			// f = f * g_{T,Q}(P)
@@ -2088,7 +2111,7 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 	}
 	sm9_fp12_inv(tmp, f_den);  // f_den = f_den^{-1}
 	sm9_fp12_mul(tmp, f_num, tmp);  // r = f_num*f_den = f
-	sm9_fp12_print("endfor", tmp);
+	// sm9_fp12_print("endfor", tmp);
 
 	// Q1 = pi_q(Q), Q2 = pi_{q^2}(Q), Q2 = -Q2
 	sm9_twist_point_pi1(Q1, Q);
