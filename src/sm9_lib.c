@@ -73,6 +73,8 @@ int sm9_sign_init(SM9_SIGN_CTX *ctx)
 {
 	const uint8_t prefix[1] = { SM9_HASH2_PREFIX };
 	sm3_init(&ctx->sm3_ctx);
+
+	// sm3_ctx以0x02开头
 	sm3_update(&ctx->sm3_ctx, prefix, sizeof(prefix));
 	return 1;
 }
@@ -87,11 +89,14 @@ int sm9_sign_finish(SM9_SIGN_CTX *ctx, const SM9_SIGN_KEY *key, uint8_t *sig, si
 {
 	SM9_SIGNATURE signature;
 
+	// 签名
 	if (sm9_do_sign(key, &ctx->sm3_ctx, &signature) != 1) {
 		error_print();
 		return -1;
 	}
 	*siglen = 0;
+	
+	// SM9_SIGNATURE 转成 字节数组
 	if (sm9_signature_to_der(&signature, &sig, siglen) != 1) {
 		error_print();
 		return -1;
@@ -113,6 +118,9 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 	// A1: g = e(P1, Ppubs)
 	sm9_pairing(g, &key->Ppubs, SM9_P1);
 
+	sm9_fp12_print("g: ", g);
+	sm9_twist_point_print(stdout, 1, 0, "SM9_P2", SM9_P2);
+	return 0;
 	do {
 		// A2: rand r in [1, N-1]
 		if (sm9_fn_rand(r) != 1) {
@@ -126,18 +134,19 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 		sm9_fp12_to_bytes(g, wbuf);
 
 		// A4: h = H2(M || w, N)
-		sm3_update(&ctx, wbuf, sizeof(wbuf));
+		// hlen = 8*(5*bitlen(N)/32) = 8*40，8*40表示的是比特长度，也就是40字节
+		sm3_update(&ctx, wbuf, sizeof(wbuf));  // 02||w
 		tmp_ctx = ctx;
-		sm3_update(&ctx, ct1, sizeof(ct1));
-		sm3_finish(&ctx, Ha);
-		sm3_update(&tmp_ctx, ct2, sizeof(ct2));
-		sm3_finish(&tmp_ctx, Ha + 32);
-		sm9_fn_from_hash(sig->h, Ha);
+		sm3_update(&ctx, ct1, sizeof(ct1));  // 02||w||1
+		sm3_finish(&ctx, Ha);                // Ha1
+		sm3_update(&tmp_ctx, ct2, sizeof(ct2));  // 02||w||2
+		sm3_finish(&tmp_ctx, Ha + 32);           // Ha2
+		sm9_fn_from_hash(sig->h, Ha);  // 这里的参数Ha是大小为40的uint8_t数组, sig->h = (Ha mod (n-1)) + 1;
 
 		// A5: l = (r - h) mod N, if l = 0, goto A2
 		sm9_fn_sub(r, r, sig->h);
 
-	} while (sm9_fn_is_zero(r));
+	} while (sm9_fn_is_zero(r));  // 如果r为0，返回到A2执行
 
 	// A6: S = l * dsA
 	sm9_point_mul(&sig->S, r, &key->ds);

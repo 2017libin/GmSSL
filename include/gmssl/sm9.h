@@ -203,7 +203,8 @@ void sm9_fp2_div(sm9_fp2_t r, const sm9_fp2_t a, const sm9_fp2_t b);
 void sm9_fp2_div2(sm9_fp2_t r, const sm9_fp2_t a);
 void sm9_fp2_to_hex(const sm9_fp2_t a, char hex[129]);
 int  sm9_fp2_from_hex(sm9_fp2_t r, const char hex[129]);
-int  sm9_fp2_print(FILE *fp, int fmt, int ind, const char *label, const sm9_fp2_t a);
+// int  sm9_fp2_print(FILE *fp, int fmt, int ind, const char *label, const sm9_fp2_t a);
+int  sm9_fp2_print(const char *prefix, const sm9_fp2_t a);
 
 
 typedef sm9_fp2_t sm9_fp4_t[2];

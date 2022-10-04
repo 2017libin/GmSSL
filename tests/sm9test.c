@@ -490,6 +490,7 @@ err:
 	"2A430968F16086061904CE201847934B11CA0F9E9528F5A9D0CE8F015C9AEA79\n" \
 	"934FDDA6D3AB48C8571CE2354B79742AA498CB8CDDE6BD1FA5946345A1A652F6"
 
+#include <time.h>
 
 int test_sm9_pairing() {
 	SM9_TWIST_POINT p;
@@ -499,7 +500,21 @@ int test_sm9_pairing() {
 	sm9_bn_t k;
 	int j = 1;
 
-	sm9_pairing(r, SM9_Ppubs, SM9_P1); sm9_fp12_from_hex(s, hex_pairing1); if (!sm9_fp12_equ(r, s)) goto err; ++j;
+	// 测试曲线配对算法
+	clock_t begin, end;
+	size_t count=1;
+	begin = clock();
+	for (size_t i = 0; i < count; i++)
+	{
+		sm9_pairing(r, SM9_Ppubs, SM9_P1);
+	}
+	end = clock();
+	printf("total time: %d s, one pairing time: %f s\n", (end-begin)/CLOCKS_PER_SEC, ((double)end-begin)/CLOCKS_PER_SEC/count);
+
+	sm9_fp12_print("g", r);
+
+	sm9_fp12_from_hex(s, hex_pairing1);
+	if (!sm9_fp12_equ(r, s)) goto err; ++j;
 
 	sm9_twist_point_from_hex(&p, hex_deB); sm9_point_from_hex(&q, hex_RA);
 	sm9_pairing(r, &p, &q); sm9_fp12_from_hex(s, hex_pairing2); if (!sm9_fp12_equ(r, s)) goto err; ++j;
@@ -521,7 +536,7 @@ err:
 int test_sm9_sign() {
 	SM9_SIGN_CTX ctx;
 	SM9_SIGN_KEY key;
-	SM9_SIGN_MASTER_KEY mpk;
+	SM9_SIGN_MASTER_KEY mpk;  // 签名主密钥，ks为签名主私钥、Ppubs为签名主公钥
 	SM9_POINT ds;
 	uint8_t sig[1000] = {0};
 	size_t siglen = 0;
@@ -530,14 +545,21 @@ int test_sm9_sign() {
 	uint8_t data[20] = {0x43, 0x68, 0x69, 0x6E, 0x65, 0x73, 0x65, 0x20, 0x49, 0x42, 0x53, 0x20, 0x73, 0x74, 0x61, 0x6E, 0x64, 0x61, 0x72, 0x64};
 	uint8_t IDA[5] = {0x41, 0x6C, 0x69, 0x63, 0x65};
 
-	sm9_bn_from_hex(mpk.ks, hex_ks); sm9_twist_point_mul_generator(&(mpk.Ppubs), mpk.ks);
+	// 
+	sm9_bn_from_hex(mpk.ks, hex_ks);
+	sm9_twist_point_mul_generator(&(mpk.Ppubs), mpk.ks);
+
+	// 生成签名密钥
 	if (sm9_sign_master_key_extract_key(&mpk, (char *)IDA, sizeof(IDA), &key) < 0) goto err; ++j;
+
 	sm9_point_from_hex(&ds, hex_ds); if (!sm9_point_equ(&(key.ds), &ds)) goto err; ++j;
 
+	// 签名
 	sm9_sign_init(&ctx);
 	sm9_sign_update(&ctx, data, sizeof(data));
 	if (sm9_sign_finish(&ctx, &key, sig, &siglen) < 0) goto err; ++j;
 
+	// 验签
 	sm9_verify_init(&ctx);
 	sm9_verify_update(&ctx, data, sizeof(data));
 	if (sm9_verify_finish(&ctx, sig, siglen, &mpk, (char *)IDA, sizeof(IDA)) != 1) goto err; ++j;
@@ -607,17 +629,17 @@ err:
 }
 
 int main(void) {
-	if (test_sm9_fp() != 1) goto err;
-	if (test_sm9_fn() != 1) goto err;
-	if (test_sm9_fp2() != 1) goto err;
-	if (test_sm9_fp4() != 1) goto err;
-	if (test_sm9_fp12() != 1) goto err;
-	if (test_sm9_point() != 1) goto err;
-	if (test_sm9_twist_point() != 1) goto err;
+	// if (test_sm9_fp() != 1) goto err;
+	// if (test_sm9_fn() != 1) goto err;
+	// if (test_sm9_fp2() != 1) goto err;
+	// if (test_sm9_fp4() != 1) goto err;
+	// if (test_sm9_fp12() != 1) goto err;
+	// if (test_sm9_point() != 1) goto err;
+	// if (test_sm9_twist_point() != 1) goto err;
 	if (test_sm9_pairing() != 1) goto err;
 	if (test_sm9_sign() != 1) goto err;
-	if (test_sm9_ciphertext() != 1) goto err;
-	if (test_sm9_encrypt() != 1) goto err;
+	// if (test_sm9_ciphertext() != 1) goto err;
+	// if (test_sm9_encrypt() != 1) goto err;
 
 	printf("%s all tests passed\n", __FILE__);
 	return 0;
