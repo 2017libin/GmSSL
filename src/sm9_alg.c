@@ -1951,11 +1951,10 @@ void sm9_twist_point_pi1(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P)
 		0x377b698b, 0xa91d8354, 0x0ddd04ed, 0x47c5c86e,
 		0x9c086749, 0x843c6cfa, 0xe5720bdb, 0x3f23ea58,
 	};
-	sm9_fp2_conjugate(R->X, P->X);
+	sm9_fp2_conjugate(R->X, P->X);  // X[0], -X[1]
 	sm9_fp2_conjugate(R->Y, P->Y);
 	sm9_fp2_conjugate(R->Z, P->Z);
 	sm9_fp2_mul_fp(R->Z, R->Z, c);
-
 }
 
 void sm9_twist_point_pi2(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P)
