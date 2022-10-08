@@ -1569,8 +1569,9 @@ int sm9_point_print(FILE *fp, int fmt, int ind, const char *label, const SM9_POI
 	sm9_fp2_t x, y;
 	printf("\n%s\n", label);
 	sm9_point_get_xy(P, x, y);
-	sm9_fp2_print("x", x);
-	sm9_fp2_print("y", y);
+
+	sm9_fp_print(stdout, 1, 0, "x", P->X);
+	sm9_fp_print(stdout, 1, 0, "y", P->Y);
 	return 1;
 }
 
@@ -1765,7 +1766,7 @@ void sm9_twist_point_sub(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9
 	SM9_TWIST_POINT _T, *T = &_T;
 	sm9_twist_point_neg(T, Q);
 	sm9_twist_point_add_full(R, P, T);
-}
+} 
 
 void sm9_twist_point_add_full(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9_TWIST_POINT *Q)
 {
@@ -1846,7 +1847,7 @@ void sm9_twist_point_mul_generator(SM9_TWIST_POINT *R, const sm9_bn_t k)
 	sm9_twist_point_mul(R, k, SM9_P2);
 }
 
-// g
+// g_{V,V}(Q): g_{P,P}(Q)
 void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const SM9_TWIST_POINT *P, const SM9_POINT *Q)
 {
 	sm9_fp_t x;
@@ -2076,6 +2077,12 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 		// sm9_point_print(stdout, 1, 0, "P1", P);
 		sm9_eval_g_tangent(g_num, g_den, T, P);  // g = g_{T,T}(P)
+
+		sm9_point_print(stdout, 1, 0, "P", P);
+		sm9_twist_point_print(stdout, 1, 0, "T", T);
+		sm9_fp12_print("g_num", g_num);
+		sm9_fp12_print("g_den", g_den);
+
 
 		sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f^2 * g_{T,T}(P)
 		sm9_fp12_mul(f_den, f_den, g_den);
