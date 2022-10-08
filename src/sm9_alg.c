@@ -1872,24 +1872,42 @@ void sm9_eval_g_tangent(sm9_fp12_t num, sm9_fp12_t den, const SM9_TWIST_POINT *P
 	sm9_fp12_set_zero(num);
 	sm9_fp12_set_zero(den);
 
+	// sm9_fp12_print("num", num);
+	// sm9_fp12_print("den", den);
+
 	sm9_fp2_sqr(t0, ZP);         // t0 = ZP^2
 	sm9_fp2_mul(t1, t0, ZP);     // t1 = ZP^3
 	sm9_fp2_mul(b1, t1, YP);     // b1 = ZP^3 * YP
+	
+	sm9_fp2_print("b1", b1);
 
 	sm9_fp2_mul_fp(t2, b1, yQ);  // t2 = b1 * yQ = ZP^3 * YP * yQ
+
+	// sm9_fp2_print("b1", b1);
+	// sm9_fp2_print("yQ", yQ);
+	// sm9_fp2_print("t2", t2);
+
 	sm9_fp2_neg(a1, t2);         // a1 = - t2 = - (ZP^3 * YP * yQ)
+
+	sm9_fp2_print("a1", a1);
 
 	sm9_fp2_sqr(t1, XP);         // t1 = XP^2
 	sm9_fp2_mul(t0, t0, t1);     // t0 = ZP^2 * XP^2
 	sm9_fp2_mul_fp(t0, t0, xQ);  // t0 = ZP^2 * XP^2 * xQ
-	sm9_fp2_tri(t0, t0);         // t0 = t0^3 = (ZP^2 * XP^2 * xQ)^3
-	sm9_fp2_div2(a4, t0);        // a4 = t0 / 2 = (ZP^2 * XP^2 * xQ)^3 / 2
+	sm9_fp2_print("t0", t0);
+	sm9_fp2_tri(t0, t0);         // t0 = 3*t0 = 3*(ZP^2 * XP^2 * xQ)
+	sm9_fp2_print("t0", t0);
+	sm9_fp2_div2(a4, t0);        // a4 = t0 / 2 = 3*(ZP^2 * XP^2 * xQ) / 2
+	
+	sm9_fp2_print("a4", a4);
 
 	sm9_fp2_mul(t1, t1, XP);     // t1 = XP^3
 	sm9_fp2_tri(t1, t1);         // t1 = XP^6
 	sm9_fp2_div2(t1, t1);        // t1 = XP^6 / 2
 	sm9_fp2_sqr(t0, YP);         // t0 = YP
 	sm9_fp2_sub(a0, t0, t1);     // a0 = t0 - t1 = YP - (XP^6 / 2)
+	
+	sm9_fp2_print("a0", a0);
 }
 
 void sm9_eval_g_line(sm9_fp12_t num, sm9_fp12_t den, const SM9_TWIST_POINT *T, const SM9_TWIST_POINT *P, const SM9_POINT *Q)
@@ -2060,6 +2078,7 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 	sm9_fp2_t xx, yy;
 	int i;
 
+	// b)
 	sm9_twist_point_copy(T, Q);
 	// sm9_twist_point_print(stdout, 1, 0, "Q", Q);
 	// sm9_twist_point_print(stdout, 1, 0, "COPY_Q", T);
@@ -2069,15 +2088,17 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 	for (i = 0; i < strlen(abits); i++) {
 		// f = f^2*g_{T,T}(P)
+		// c.1)
 		sm9_fp12_sqr(f_num, f_num);  // f = f^2
 		sm9_fp12_sqr(f_den, f_den);
 		
 		// 打印f
-		f12p("1 f", f_num, f_den);
+		// f12p("1 f", f_num, f_den);
 
 		// sm9_point_print(stdout, 1, 0, "P1", P);
+	
 		sm9_eval_g_tangent(g_num, g_den, T, P);  // g = g_{T,T}(P)
-
+		return 0;
 		sm9_point_print(stdout, 1, 0, "P", P);
 		sm9_twist_point_print(stdout, 1, 0, "T", T);
 		sm9_fp12_print("g_num", g_num);
