@@ -499,20 +499,26 @@ int test_sm9_pairing() {
 	sm9_fp12_t s;
 	sm9_bn_t k;
 	int j = 1;
+	// 测试正确性
+	sm9_pairing(r, SM9_Ppubs, SM9_P1);
 
-	// 测试曲线配对算法
+	sm9_twist_point_print(stdout, 1, 0, "in: Ppubs", SM9_Ppubs);
+	sm9_point_print(stdout, 1, 0, "in: g1", SM9_P1);
+	sm9_fp12_print("out: r", r);
+	
+	// 测试性能
 	clock_t begin, end;
-	size_t count=1;
+	size_t count=100;
 	begin = clock();
 	for (size_t i = 0; i < count; i++)
 	{
 		sm9_pairing(r, SM9_Ppubs, SM9_P1);
-		// sm9_twist_point_print(stdout, 1, 0, "Ppubs", SM9_Ppubs);
 	}
 	end = clock();
-	printf("total time: %d s, one pairing time: %f s\n", (end-begin)/CLOCKS_PER_SEC, ((double)end-begin)/CLOCKS_PER_SEC/count);
-	// sm9_fp12_print("g", r);
+	printf("run %d times, total time: %d s, one time: %f s\n", \
+	 count, (end-begin)/CLOCKS_PER_SEC, ((double)end-begin)/CLOCKS_PER_SEC/count);
 	return 0;
+
 	sm9_fp12_from_hex(s, hex_pairing1);
 	if (!sm9_fp12_equ(r, s)) goto err; ++j;
 
