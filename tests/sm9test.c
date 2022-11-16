@@ -499,25 +499,51 @@ int test_sm9_pairing() {
 	sm9_fp12_t s;
 	sm9_bn_t k;
 	int j = 1;
-	// 测试正确性
-	sm9_pairing(r, SM9_Ppubs, SM9_P1);
-
-	sm9_twist_point_print(stdout, 1, 0, "in: Ppubs", SM9_Ppubs);
-	sm9_point_print(stdout, 1, 0, "in: g1", SM9_P1);
-	sm9_fp12_print("out: r", r);
 	
-	// 测试性能
-	clock_t begin, end;
-	size_t count=100;
+	// 测试性能1：使用同样的输入进行测试
+	double begin, end;
+	size_t count=1000;
 	begin = clock();
 	for (size_t i = 0; i < count; i++)
 	{
 		sm9_pairing(r, SM9_Ppubs, SM9_P1);
 	}
 	end = clock();
-	printf("run %d times, total time: %d s, one time: %f s\n", \
-	 count, (end-begin)/CLOCKS_PER_SEC, ((double)end-begin)/CLOCKS_PER_SEC/count);
-	return 0;
+	printf("run %d times, total time: %f s, one time: %f s\n", \
+	 count, (end-begin)/CLOCKS_PER_SEC, (end-begin)/CLOCKS_PER_SEC/count);
+	
+	goto err;  // 提前结束程序
+
+	// 测试性能2：使用不同的输入进行测试
+	// clock_t begin, end;
+	// size_t count=1000;
+	// sm9_fp12_t r_arr[count];
+	// SM9_POINT P1_arr[count];
+	// SM9_TWIST_POINT Ppub_arr[count];
+
+	// sm9_twist_point_from_hex(&Ppub_arr[0],hex_iv);
+	// sm9_bn_rand_range(k,SM9_N);
+	// sm9_bn_rand_range(k,SM9_N);
+	// sm9_bn_from_hex(k, hex_iv);
+	// sm9_point_from_hex(&P1_arr[0],hex_iv);
+ 	// char hex[64];
+
+	// for(size_t i=0;i<count;i++){
+	// 	sm9_twist_point_mul(&Ppub_arr[i],k,&Ppub_arr[0]);
+	// 	sm9_point_from_hex(&P1_arr[i],hex);
+	// 	sm9_point_mul(&P1_arr[i],k,&P1_arr[0]);
+	// 	sm9_fp12_rand(r_arr[i]);		
+	// }
+
+	// begin = clock();
+	// for (size_t i = 0; i < count; i++)
+	// {
+	// 	sm9_pairing(r_arr[i], &Ppub_arr[i], &P1_arr[i]);
+	// }
+	// end = clock();
+	// printf("run %d times, total time: %d s, one time: %f s\n", \
+	//  count, (end-begin)/CLOCKS_PER_SEC, ((double)end-begin)/CLOCKS_PER_SEC/count);
+	// goto err;  // 提前结束程序
 
 	sm9_fp12_from_hex(s, hex_pairing1);
 	if (!sm9_fp12_equ(r, s)) goto err; ++j;

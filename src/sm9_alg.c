@@ -2213,7 +2213,6 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 	}
 
-	
 	// d)
 	sm9_twist_point_pi1(Q1, Q);  // Q1 = pi_q(Q)
 	sm9_twist_point_neg_pi2(Q2, Q);  // Q2 = pi_{q^2}(Q), Q2 = -Q2
@@ -2236,8 +2235,6 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 	sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f * g_{T,-Q2}(P)
 	sm9_fp12_mul(f_den, f_den, g_den);
 	sm9_twist_point_add_full(T, T, Q2);  // T = T - Q2
-
-
 
 	// g)
 	// sm9_fp12_print("f_den", f_den);
