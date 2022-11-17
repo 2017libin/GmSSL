@@ -502,7 +502,7 @@ int test_sm9_pairing() {
 	
 	// 测试性能1：使用同样的输入进行测试
 	double begin, end;
-	size_t count=1000;
+	size_t count=1;
 	begin = clock();
 	for (size_t i = 0; i < count; i++)
 	{
@@ -669,7 +669,7 @@ int main(void) {
 	// if (test_sm9_point() != 1) goto err;
 	// if (test_sm9_twist_point() != 1) goto err;
 	if (test_sm9_pairing() != 1) goto err;
-	if (test_sm9_sign() != 1) goto err;
+	// if (test_sm9_sign() != 1) goto err;
 	// if (test_sm9_ciphertext() != 1) goto err;
 	// if (test_sm9_encrypt() != 1) goto err;
 
