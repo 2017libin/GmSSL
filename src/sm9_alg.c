@@ -2082,6 +2082,8 @@ void f12p(char prefix[], sm9_fp12_t num,  sm9_fp12_t den){
 		sm9_fp12_print(prefix, tmp);
 }
 
+
+/*-------------------------------新增函数---------------------------------------*/
 // r = a*u, 即 r = a0u + -2*a1
 void sm9_fp2_u(sm9_fp2_t r, const sm9_fp2_t a){
 	sm9_fp_copy(r[1], a[0]);
@@ -2100,7 +2102,6 @@ void sm9_fp4_mul_fp2_v(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp2_t b){
 	sm9_fp2_mul_u(r[0], a[1], b);
 	sm9_fp2_mul(r[1], a[0], b);
 }
-
 
 // g is a sparse fp12_t, g = g0 + g2'w^2, g0 = g0' + g3'w^3，g0',g1',g3'都定义在fp2
 void sm9_fp12_mul_sparse(sm9_fp12_t h, const sm9_fp12_t f, const sm9_fp12_t g){
@@ -2147,6 +2148,8 @@ void sm9_fp12_mul_sparse2(sm9_fp12_t r, sm9_fp12_t a, sm9_fp12_t b){
 	sm9_fp4_mul_fp2_v(r[1], a[1], b[0][1]);
 	sm9_fp4_mul_fp2_v(r[2], a[2], b[0][1]);
 }
+
+/*-------------------------新增函数 end --------------------------------*/
 
 /***************性能测试代码*******************/
 #include <sys/times.h>
@@ -2309,48 +2312,30 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 		return 1;
 	#endif
 	
-		// sm9_fp4_print("g_num[0]", g_num[0]);
-		// sm9_fp4_print("g_num[1]", g_num[1]);
-		// sm9_fp4_print("g_num[2]", g_num[2]);
-		// sm9_fp12_print("g_num", g_num);
-		// sm9_fp12_print("g_den", g_den);
-		// return 1;
 
+	#if 0
 		// sparse正确性验证		
-		// sm9_fp12_mul(t1, f_num, g_num);
-		// sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-		// if(sm9_fp12_equ(t1, t2)){
-		// 	printf("equa\n");
-		// }else{
-		// 	printf("no equa\n");
-		// }
+		sm9_fp12_mul(t1, f_num, g_num);
+		sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+		if(sm9_fp12_equ(t1, t2)){
+			printf("equa\n");
+		}else{
+			printf("no equa\n");
+		}
+	#endif
 
+	#if 0
 		// sparse2正确性验证
-		// sm9_fp12_print("f_den", f_den);
-		// sm9_fp12_print("g_den", g_den);
-		// sm9_fp12_mul(t1, f_den, g_den);
-		// sm9_fp12_print("t1", t1);
-		// sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-		// sm9_fp12_print("t2", t2);
-		// printf("\n\n");
-		// return 1;
-		// if(sm9_fp12_equ(t1, t2)){
-		// 	printf("sparse2 equa\n");
-		// }else{
-		// 	printf("sparse2 no equa\n");
-		// }
+		sm9_fp12_mul(t1, f_den, g_den);
+		sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+		if(sm9_fp12_equ(t1, t2)){
+			printf("sparse2 equa\n");
+		}else{
+			printf("sparse2 no equa\n");
+		}
+	#endif 
 
-		// sm9_fp12_print("f_num", f_num);
-		// sm9_fp12_print("g_num", g_num);
-		// sm9_fp12_print("t2", t2);
-		// printf("\n\n");
-		// // return 1;
-		// if (i == 2)
-		// {
-		// 	return 1;
-		// }
-		
-
+	
 		sm9_fp12_mul(f_num, f_num, g_num);
 		sm9_fp12_mul(f_den, f_den, g_den);
 
@@ -2360,38 +2345,27 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 		if (abits[i] == '1') {
 			sm9_eval_g_line(g_num, g_den, T, Q, P);  // g = g_{T,Q}(P)
 			
-			// sm9_fp4_print("g_num[0]", g_num[0]);
-			// sm9_fp4_print("g_num[1]", g_num[1]);
-			// sm9_fp4_print("g_num[2]", g_num[2]);
-			// sm9_fp12_print("g_num", g_num);
-			// sm9_fp12_print("g_den", g_den);
-			// return 1;
+			#if 0
+				// sparse正确性验证		
+				sm9_fp12_mul(t1, f_num, g_num);
+				sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+				if(sm9_fp12_equ(t1, t2)){
+					printf("equa\n");
+				}else{
+					printf("no equa\n");
+				}
+			#endif
 
-			// sparse正确性验证
-			// sm9_fp12_mul(t1, f_num, g_num);
-			// // sm9_fp12_print("t1", t1);
-			// sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-			// // sm9_fp12_print("t2", t2);
-			// // printf("\n\n");
-			// if(sm9_fp12_equ(t1, t2)){
-			// 	printf("if: equa\n");
-			// }else{
-			// 	printf("if: no equa\n");
-			// }
-
-			// sparse2正确性验证
-			// sm9_fp12_print("f_den", f_den);
-			// sm9_fp12_print("g_den", g_den);
-			sm9_fp12_mul(t1, f_den, g_den);
-			// sm9_fp12_print("t1", t1);
-			sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-			// sm9_fp12_print("t2", t2);
-			// printf("\n\n");
-			if(sm9_fp12_equ(t1, t2)){
-				printf("if: sparse2 equa\n");
-			}else{
-				printf("if: sparse2 no equa\n");
-			}
+			#if 0
+				// sparse2正确性验证
+				sm9_fp12_mul(t1, f_den, g_den);
+				sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+				if(sm9_fp12_equ(t1, t2)){
+					printf("sparse2 equa\n");
+				}else{
+					printf("sparse2 no equa\n");
+				}
+			#endif 
 
 			sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,Q}(P)
 			sm9_fp12_mul(f_den, f_den, g_den);
