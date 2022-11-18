@@ -145,9 +145,6 @@ int sm9_bn_cmp(const sm9_bn_t a, const sm9_bn_t b)
 	return 0;
 }
 
-
-
-
 void sm9_bn_copy(sm9_bn_t r, const sm9_bn_t a)
 {
 	memcpy(r, a, sizeof(sm9_bn_t));
@@ -2149,7 +2146,7 @@ void sm9_fp12_mul_sparse2(sm9_fp12_t r, sm9_fp12_t a, sm9_fp12_t b){
 	sm9_fp4_mul_fp2_v(r[2], a[2], b[0][1]);
 }
 
-/*-------------------------新增函数 end --------------------------------*/
+/*------------------------- 新增函数 end --------------------------------*/
 
 /***************性能测试代码*******************/
 #include <sys/times.h>
@@ -2271,8 +2268,34 @@ void performance_compare_den(sm9_fp12_t a, sm9_fp12_t b){
 
     return 0;
 }
-/***************性能测试代码 end *******************/
+/*************** 性能测试代码 end *******************/
 
+/*************** 正确性测试 *******************/
+
+// b是具有特定稀疏结构的fp12
+// 返回1表示相等
+int sparse_func_test(sm9_fp12_t a, sm9_fp12_t b){
+	sm9_fp12_t t1, t2;
+	sm9_fp12_mul(t1, a, b);
+	sm9_fp12_mul_sparse(t2, a, b);
+
+	int ret = sm9_fp12_equ(t1, t2);
+	// printf("sparse_func_test ret = %ld\n", ret);
+
+	return ret;
+}
+
+// b是具有特定稀疏结构的fp12
+// 返回1表示相等
+int sparse2_func_test(sm9_fp12_t a, sm9_fp12_t b){
+	sm9_fp12_t t1, t2;
+	sm9_fp12_mul(t1, a, b);
+	sm9_fp12_mul_sparse2(t2, a, b);
+	int ret = sm9_fp12_equ(t1, t2);
+	// printf("sparse2_func_test ret = %ld\n", ret);
+	return ret;
+}
+/*************** 正确性测试 end *******************/
 
 // (P, Q) -> r
 void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
@@ -2305,35 +2328,22 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 		sm9_eval_g_tangent(g_num, g_den, T, P);  // c.1) g = g_{T,T}(P)
 
-	#if 1
-		// 性能对比
-		performance_compare_num(f_num, g_num);
-		performance_compare_den(f_den, g_den);
-		return 1;
-	#endif
-	
+		#if 0
+			// 性能对比
+			performance_compare_num(f_num, g_num);
+			performance_compare_den(f_den, g_den);
+			return 1;
+		#endif
 
-	#if 0
-		// sparse正确性验证		
-		sm9_fp12_mul(t1, f_num, g_num);
-		sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-		if(sm9_fp12_equ(t1, t2)){
-			printf("equa\n");
-		}else{
-			printf("no equa\n");
-		}
-	#endif
-
-	#if 0
-		// sparse2正确性验证
-		sm9_fp12_mul(t1, f_den, g_den);
-		sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-		if(sm9_fp12_equ(t1, t2)){
-			printf("sparse2 equa\n");
-		}else{
-			printf("sparse2 no equa\n");
-		}
-	#endif 
+		#if 0
+			// 正确性测试
+			if(!(sparse_func_test(f_num, g_num) && sparse2_func_test(f_den, g_den))){
+				printf("no equal!\n");
+				return -1;
+			}else{
+				printf("pass!\n");
+			}
+		#endif
 
 	
 		sm9_fp12_mul(f_num, f_num, g_num);
@@ -2346,26 +2356,14 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 			sm9_eval_g_line(g_num, g_den, T, Q, P);  // g = g_{T,Q}(P)
 			
 			#if 0
-				// sparse正确性验证		
-				sm9_fp12_mul(t1, f_num, g_num);
-				sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-				if(sm9_fp12_equ(t1, t2)){
-					printf("equa\n");
+				// 正确性测试
+				if(!(sparse_func_test(f_num, g_num) && sparse2_func_test(f_den, g_den))){
+					printf("no equal!\n");
+					return -1;
 				}else{
-					printf("no equa\n");
+					printf("pass!\n");
 				}
 			#endif
-
-			#if 0
-				// sparse2正确性验证
-				sm9_fp12_mul(t1, f_den, g_den);
-				sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-				if(sm9_fp12_equ(t1, t2)){
-					printf("sparse2 equa\n");
-				}else{
-					printf("sparse2 no equa\n");
-				}
-			#endif 
 
 			sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,Q}(P)
 			sm9_fp12_mul(f_den, f_den, g_den);

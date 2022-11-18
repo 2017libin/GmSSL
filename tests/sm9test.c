@@ -507,6 +507,7 @@ int test_sm9_pairing() {
 	for (size_t i = 0; i < count; i++)
 	{
 		sm9_pairing(r, SM9_Ppubs, SM9_P1);
+		sm9_fp12_print("r", r);
 	}
 	end = clock();
 	printf("run %d times, total time: %f s, one time: %f s\n", \
