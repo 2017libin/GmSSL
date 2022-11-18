@@ -2091,9 +2091,16 @@ void sm9_fp2_u(sm9_fp2_t r, const sm9_fp2_t a){
 
 // r = a*v, 即 r = a0v + a1*u
 void sm9_fp4_v(sm9_fp4_t r, const sm9_fp4_t a){
-	sm9_fp4_copy(r[1], a[0]);
-	sm9_fp2_u(r[1], a[1]);
+	sm9_fp2_copy(r[1], a[0]);
+	sm9_fp2_u(r[0], a[1]);
 }
+
+// (a0+a1*v)*b*v = a1*b*u + a0*b*v
+void sm9_fp4_mul_fp2_v(sm9_fp4_t r, const sm9_fp4_t a, const sm9_fp2_t b){
+	sm9_fp2_mul_u(r[0], a[1], b);
+	sm9_fp2_mul(r[1], a[0], b);
+}
+
 
 // g is a sparse fp12_t, g = g0 + g2'w^2, g0 = g0' + g3'w^3，g0',g1',g3'都定义在fp2
 void sm9_fp12_mul_sparse(sm9_fp12_t h, const sm9_fp12_t f, const sm9_fp12_t g){
@@ -2120,8 +2127,8 @@ void sm9_fp12_mul_sparse(sm9_fp12_t h, const sm9_fp12_t f, const sm9_fp12_t g){
 	sm9_fp4_mul(u2, u2, g[0]);
 
 	// 6. h0 = t0 + (u0 - t1)v
-	sm9_fp4_sub(h[0], u0, t1);
-	sm9_fp4_v(h[0], h[0]);  // h0 = (u0 - t1)v
+	sm9_fp4_sub(t, u0, t1);
+	sm9_fp4_v(h[0], t);  // h0 = (u0 - t1)v
 	sm9_fp4_add(h[0], t0, h[0]);
 
 	// 7. h1 = u2 - t0 + t1v
@@ -2133,6 +2140,136 @@ void sm9_fp12_mul_sparse(sm9_fp12_t h, const sm9_fp12_t f, const sm9_fp12_t g){
 	sm9_fp4_sub(h[2], u1, t0);
 	sm9_fp4_sub(h[2], h[2], t1);
 }
+
+// r = (a0 + a1*w + a2*w^2)*b3'w^3，其中b3'是fp2上的元素，也就是b0中的高位fp2，即b3'*w^3 = b3'*v
+void sm9_fp12_mul_sparse2(sm9_fp12_t r, sm9_fp12_t a, sm9_fp12_t b){
+	sm9_fp4_mul_fp2_v(r[0], a[0], b[0][1]);
+	sm9_fp4_mul_fp2_v(r[1], a[1], b[0][1]);
+	sm9_fp4_mul_fp2_v(r[2], a[2], b[0][1]);
+}
+
+/***************性能测试代码*******************/
+#include <sys/times.h>
+#include <unistd.h>
+#include <signal.h>
+#include <stdio.h>
+
+static int run = 0;
+// static int usertime = 1;
+
+#define TM_START        0
+#define TM_STOP         1
+
+#define START        0
+#define STOP         1
+
+static void alarmed(int sig)
+{
+    signal(SIGALRM, alarmed); 
+    run = 0;
+}
+
+double app_tminterval(int stop)
+{
+    double ret = 0;
+    struct tms rus;
+    clock_t now = times(&rus);
+    static clock_t tmstart;
+
+    // if (usertime)
+    //     now = rus.tms_utime;
+
+    if (stop == TM_START) {
+        tmstart = now;
+    } else {
+        long int tck = sysconf(_SC_CLK_TCK);
+        ret = (now - tmstart) / (double)tck;
+    }
+    return ret;
+}
+
+// s为STOP时，返回间隔时间
+static double Time_F(int s)
+{
+    double ret = app_tminterval(s);  // 返回
+    if (s == STOP)
+        alarm(0);  // 停止闹钟
+    return ret;
+}
+
+// fp12_mul和fp12_sparse性能比较
+void performance_compare_num(sm9_fp12_t a, sm9_fp12_t b){
+	sm9_fp12_t r;
+    int count;
+    int sec = 1;
+    double d = 0.0;
+
+    // 注册计时器
+    signal(SIGALRM, alarmed); 
+
+    // fp12_mul
+    alarm(sec);
+    run = 1;
+    Time_F(START);
+    for (count = 0; run && count < 0x7fffffff; count++)
+    {
+        sm9_fp12_mul(r, a, b);
+    }
+    d = Time_F(STOP);
+    printf("fp12_mul: run %d times in %.2fs\n", count, d);
+
+    // fp12_mul_sparse2
+    alarm(sec);
+    run = 1;
+    Time_F(START);
+    for (count = 0; run && count < 0x7fffffff; count++)
+    {
+        sm9_fp12_mul_sparse(r, a, b);
+    }
+    d = Time_F(STOP);
+    printf("fp12_mul_sparse: run %d times in %.2fs\n", count, d);
+
+    return 0;
+
+    return 0;
+}
+
+// fp12_mul和fp12_sparse2性能比较
+void performance_compare_den(sm9_fp12_t a, sm9_fp12_t b){
+	sm9_fp12_t r;
+    int count;
+    int sec = 1;
+    double d = 0.0;
+
+    // 注册计时器
+    signal(SIGALRM, alarmed);
+
+    // fp12_mul
+    alarm(sec);
+    run = 1;
+    Time_F(START);
+    for (count = 0; run && count < 0x7fffffff; count++)
+    {
+        sm9_fp12_mul(r, a, b);
+    }
+    d = Time_F(STOP);
+    printf("fp12_mul: run %d times in %.2fs\n", count, d);
+
+    // fp12_mul_sparse2
+    alarm(sec);
+    run = 1;
+    Time_F(START);
+    for (count = 0; run && count < 0x7fffffff; count++)
+    {
+        sm9_fp12_mul_sparse2(r, a, b);
+    }
+    d = Time_F(STOP);
+    printf("fp12_mul_sparse2: run %d times in %.2fs\n", count, d);
+
+    return 0;
+}
+/***************性能测试代码 end *******************/
+
 
 // (P, Q) -> r
 void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
@@ -2157,25 +2294,64 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 	sm9_fp12_set_one(f_num);
 	sm9_fp12_set_one(f_den);
 
+	sm9_fp12_t t1, t2;
 	for (i = 0; i < strlen(abits); i++) {
 		// c)
 		sm9_fp12_sqr(f_num, f_num);  // c.1) f = f^2
 		sm9_fp12_sqr(f_den, f_den);
 
 		sm9_eval_g_tangent(g_num, g_den, T, P);  // c.1) g = g_{T,T}(P)
-		sm9_fp4_print("g_num[0]", g_num[0]);
-		sm9_fp4_print("g_num[1]", g_num[1]);
-		sm9_fp4_print("g_num[2]", g_num[2]);
 
-
-		sm9_fp12_print("g_num", g_num);
-		sm9_fp12_print("g_den", g_den);
-
-		sm9_fp12_mul_sparse(f_num, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
-
-		sm9_fp12_print("f_num", f_num);
+	#if 1
+		// 性能对比
+		performance_compare_num(f_num, g_num);
+		performance_compare_den(f_den, g_den);
 		return 1;
+	#endif
+	
+		// sm9_fp4_print("g_num[0]", g_num[0]);
+		// sm9_fp4_print("g_num[1]", g_num[1]);
+		// sm9_fp4_print("g_num[2]", g_num[2]);
+		// sm9_fp12_print("g_num", g_num);
+		// sm9_fp12_print("g_den", g_den);
+		// return 1;
 
+		// sparse正确性验证		
+		// sm9_fp12_mul(t1, f_num, g_num);
+		// sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+		// if(sm9_fp12_equ(t1, t2)){
+		// 	printf("equa\n");
+		// }else{
+		// 	printf("no equa\n");
+		// }
+
+		// sparse2正确性验证
+		// sm9_fp12_print("f_den", f_den);
+		// sm9_fp12_print("g_den", g_den);
+		// sm9_fp12_mul(t1, f_den, g_den);
+		// sm9_fp12_print("t1", t1);
+		// sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+		// sm9_fp12_print("t2", t2);
+		// printf("\n\n");
+		// return 1;
+		// if(sm9_fp12_equ(t1, t2)){
+		// 	printf("sparse2 equa\n");
+		// }else{
+		// 	printf("sparse2 no equa\n");
+		// }
+
+		// sm9_fp12_print("f_num", f_num);
+		// sm9_fp12_print("g_num", g_num);
+		// sm9_fp12_print("t2", t2);
+		// printf("\n\n");
+		// // return 1;
+		// if (i == 2)
+		// {
+		// 	return 1;
+		// }
+		
+
+		sm9_fp12_mul(f_num, f_num, g_num);
 		sm9_fp12_mul(f_den, f_den, g_den);
 
 		sm9_twist_point_dbl(T, T);  // c.1) T = [2]T
@@ -2183,6 +2359,40 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 		// c.2)
 		if (abits[i] == '1') {
 			sm9_eval_g_line(g_num, g_den, T, Q, P);  // g = g_{T,Q}(P)
+			
+			// sm9_fp4_print("g_num[0]", g_num[0]);
+			// sm9_fp4_print("g_num[1]", g_num[1]);
+			// sm9_fp4_print("g_num[2]", g_num[2]);
+			// sm9_fp12_print("g_num", g_num);
+			// sm9_fp12_print("g_den", g_den);
+			// return 1;
+
+			// sparse正确性验证
+			// sm9_fp12_mul(t1, f_num, g_num);
+			// // sm9_fp12_print("t1", t1);
+			// sm9_fp12_mul_sparse(t2, f_num, g_num);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+			// // sm9_fp12_print("t2", t2);
+			// // printf("\n\n");
+			// if(sm9_fp12_equ(t1, t2)){
+			// 	printf("if: equa\n");
+			// }else{
+			// 	printf("if: no equa\n");
+			// }
+
+			// sparse2正确性验证
+			// sm9_fp12_print("f_den", f_den);
+			// sm9_fp12_print("g_den", g_den);
+			sm9_fp12_mul(t1, f_den, g_den);
+			// sm9_fp12_print("t1", t1);
+			sm9_fp12_mul_sparse2(t2, f_den, g_den);  // c.1) f = f * g = f^2 * g_{T,T}(P)
+			// sm9_fp12_print("t2", t2);
+			// printf("\n\n");
+			if(sm9_fp12_equ(t1, t2)){
+				printf("if: sparse2 equa\n");
+			}else{
+				printf("if: sparse2 no equa\n");
+			}
+
 			sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,Q}(P)
 			sm9_fp12_mul(f_den, f_den, g_den);
 			sm9_twist_point_add_full(T, T, Q);  // T = T + Q
