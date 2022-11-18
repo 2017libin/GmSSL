@@ -362,7 +362,7 @@ void sm9_twist_point_neg_pi2(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P);
 void sm9_final_exponent_hard_part(sm9_fp12_t r, const sm9_fp12_t f);
 void sm9_final_exponent(sm9_fp12_t r, const sm9_fp12_t f);
 void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P);
-
+void sm9_pairing_fast(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P);
 
 /* private key extract algorithms */
 #define SM9_HID_SIGN		0x01
