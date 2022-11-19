@@ -495,7 +495,7 @@ err:
 int test_sm9_pairing() {
 	SM9_TWIST_POINT p;
 	SM9_POINT q;
-	sm9_fp12_t r;
+	sm9_fp12_t r, r2;
 	sm9_fp12_t s;
 	sm9_bn_t k;
 	int j = 1;
@@ -508,8 +508,13 @@ int test_sm9_pairing() {
 	{
 		sm9_pairing(r, SM9_Ppubs, SM9_P1);
 		sm9_fp12_print("r1", r);
-        sm9_pairing_fast(r, SM9_Ppubs, SM9_P1);
-        sm9_fp12_print("r2", r);
+        sm9_pairing_fast(r2, SM9_Ppubs, SM9_P1);
+        sm9_fp12_print("r2", r2);
+        if(sm9_fp12_equ(r, r2)){
+            printf("equ\n");
+        }else{
+            printf("no equ\n");
+        }
 	}
 	end = clock();
 	printf("run %d times, total time: %f s, one time: %f s\n", \

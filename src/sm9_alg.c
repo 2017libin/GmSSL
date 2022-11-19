@@ -1723,6 +1723,7 @@ void sm9_twist_point_dbl(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P)
 	sm9_fp2_copy(R->Z, Z3);
 }
 
+// Q.Z = 1的情况下进行点加操作
 void sm9_twist_point_add(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9_TWIST_POINT *Q)
 {
 	const sm9_fp_t *X1 = P->X;
@@ -1747,6 +1748,7 @@ void sm9_twist_point_add(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9
 	sm9_fp2_mul(T2, T2, y2);
 	sm9_fp2_sub(T1, T1, X1);
 	sm9_fp2_sub(T2, T2, Y1);
+
 	if (sm9_fp2_is_zero(T1)) {
 		if (sm9_fp2_is_zero(T2)) {
 			sm9_twist_point_dbl(R, Q);
@@ -1756,6 +1758,7 @@ void sm9_twist_point_add(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9
 			return;
 		}
 	}
+
 	sm9_fp2_mul(Z3, Z1, T1);
 	sm9_fp2_sqr(T3, T1);
 	sm9_fp2_mul(T4, T3, T1);
@@ -1779,8 +1782,9 @@ void sm9_twist_point_sub(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9
 	SM9_TWIST_POINT _T, *T = &_T;
 	sm9_twist_point_neg(T, Q);
 	sm9_twist_point_add_full(R, P, T);
-} 
+}
 
+// 在fp2上的曲线上，使用雅可比坐标进行点加运算
 void sm9_twist_point_add_full(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, const SM9_TWIST_POINT *Q)
 {
 	const sm9_fp_t *X1 = P->X;
@@ -1800,18 +1804,18 @@ void sm9_twist_point_add_full(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, cons
 		return;
 	}
 
-	sm9_fp2_sqr(T1, Z1);
-	sm9_fp2_sqr(T2, Z2);
-	sm9_fp2_mul(T3, X2, T1);
-	sm9_fp2_mul(T4, X1, T2);
-	sm9_fp2_add(T5, T3, T4);
-	sm9_fp2_sub(T3, T3, T4);
-	sm9_fp2_mul(T1, T1, Z1);
-	sm9_fp2_mul(T1, T1, Y2);
-	sm9_fp2_mul(T2, T2, Z2);
-	sm9_fp2_mul(T2, T2, Y1);
-	sm9_fp2_add(T6, T1, T2);
-	sm9_fp2_sub(T1, T1, T2);
+	sm9_fp2_sqr(T1, Z1);  // T1 = Z1^2
+	sm9_fp2_sqr(T2, Z2);  // T2 = Z2^2
+	sm9_fp2_mul(T3, X2, T1);  // T3 = X2 * Z1^2
+	sm9_fp2_mul(T4, X1, T2);  // T4 = X1 * Z2^2
+	sm9_fp2_add(T5, T3, T4);  // T5 = (X2 * Z1^2) + (X1 * Z2^2)
+	sm9_fp2_sub(T3, T3, T4);  // T3 = (X2 * Z1^2) - (X1 * Z2^2) = \lambda
+	sm9_fp2_mul(T1, T1, Z1);  // T1 = Z1^3
+	sm9_fp2_mul(T1, T1, Y2);  // T1 = Y2 * Z1^3
+	sm9_fp2_mul(T2, T2, Z2);  // T2 = Z2^3
+	sm9_fp2_mul(T2, T2, Y1);  // T2 = Y1 * Z2^3
+	sm9_fp2_add(T6, T1, T2);  // T6 = (Y2 * Z1^3) + (Y1 * Z2^3)
+	sm9_fp2_sub(T1, T1, T2);  // T1 = (Y2 * Z1^3) - (Y1 * Z2^3) = \theta
 
 	if (sm9_fp2_is_zero(T1) && sm9_fp2_is_zero(T3)) {
 		return sm9_twist_point_dbl(R, P);
@@ -1820,22 +1824,23 @@ void sm9_twist_point_add_full(SM9_TWIST_POINT *R, const SM9_TWIST_POINT *P, cons
 		return sm9_twist_point_set_infinity(R);
 	}
 
-	sm9_fp2_sqr(T6, T1);
-	sm9_fp2_mul(T7, T3, Z1);
-	sm9_fp2_mul(T7, T7, Z2);
-	sm9_fp2_sqr(T8, T3);
-	sm9_fp2_mul(T5, T5, T8);
-	sm9_fp2_mul(T3, T3, T8);
-	sm9_fp2_mul(T4, T4, T8);
-	sm9_fp2_sub(T6, T6, T5);
-	sm9_fp2_sub(T4, T4, T6);
-	sm9_fp2_mul(T1, T1, T4);
-	sm9_fp2_mul(T2, T2, T3);
-	sm9_fp2_sub(T1, T1, T2);
+	sm9_fp2_sqr(T6, T1);      // T6 = T1^2
+	sm9_fp2_mul(T7, T3, Z1);  // T7 = T3 * Z1
+	sm9_fp2_mul(T7, T7, Z2);  // T7 = T3 * Z1 * Z2
 
-	sm9_fp2_copy(R->X, T6);
-	sm9_fp2_copy(R->Y, T1);
-	sm9_fp2_copy(R->Z, T7);
+	sm9_fp2_sqr(T8, T3);      // T8 = T3^2
+	sm9_fp2_mul(T5, T5, T8);  // T5 = T5 * T3^2
+	sm9_fp2_mul(T3, T3, T8);  // T3 = T3^3
+	sm9_fp2_mul(T4, T4, T8);  // T4 = T4 * T3^2
+	sm9_fp2_sub(T6, T6, T5);  // T6 = T1^2 - (T5 * T3^2)
+	sm9_fp2_sub(T4, T4, T6);  // T4 = (T4 * T3^2) - (T1^2 - T5 * T3^2)
+	sm9_fp2_mul(T1, T1, T4);  // T1 = T1 * ((T4 * T3^2) - (T1^2 - T5 * T3^2))
+	sm9_fp2_mul(T2, T2, T3);  // T2 = T2 * T3^3
+	sm9_fp2_sub(T1, T1, T2);  // T1 = T1 * ((T4 * T3^2) - (T1^2 - T5 * T3^2)) - (T2 * T3^3)
+
+	sm9_fp2_copy(R->X, T6);  //
+	sm9_fp2_copy(R->Y, T1);  //
+	sm9_fp2_copy(R->Z, T7);  // Z1 * Z2 * \lambda
 }
 
 void sm9_twist_point_mul(SM9_TWIST_POINT *R, const sm9_bn_t k, const SM9_TWIST_POINT *P)
@@ -2362,8 +2367,8 @@ void sm9_pairing(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
 // (P, Q) -> r
 void sm9_pairing_fast(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
-
     // a)
+//    const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
     const char *abits = "00100000000000000000000000000000000000010001020200020200101000020";
 
     SM9_TWIST_POINT _T, *T = &_T;
@@ -2403,28 +2408,32 @@ void sm9_pairing_fast(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P
             sm9_eval_g_line(g_num, g_den, T, Q, P);  // g = g_{T,Q}(P)
             sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,Q}(P)
             sm9_fp12_mul(f_den, f_den, g_den);
-            sm9_twist_point_add_full(T, T, Q);  // T = T + Q
+            sm9_twist_point_add(T, T, Q);  // T = T + Q
         } else if (abits[i] == '2') {
-            sm9_eval_g_line(g_num, g_den, T, neg_Q, P);  // g = g_{T,Q}(P)
-            sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,Q}(P)
+            sm9_eval_g_line(g_num, g_den, T, neg_Q, P);  // g = g_{T,-Q}(P)
+            sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,-Q}(P)
             sm9_fp12_mul(f_den, f_den, g_den);
-            sm9_twist_point_add_full(T, T, neg_Q);  // T = T + Q
+            sm9_twist_point_add(T, T, neg_Q);  // T = T - Q
         }
     }
 
     // d)
     sm9_twist_point_pi1(Q1, Q);  // Q1 = pi_q(Q)
     sm9_twist_point_neg_pi2(Q2, Q);  // Q2 = pi_{q^2}(Q), Q2 = -Q2
+
     // e)
     sm9_eval_g_line(g_num, g_den, T, Q1, P);  // g = g_{T,Q1}(P)
     sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f * g_{T,Q1}(P)
     sm9_fp12_mul(f_den, f_den, g_den);
     sm9_twist_point_add_full(T, T, Q1);  // T = T + Q1
+
     // f)
     sm9_eval_g_line(g_num, g_den, T, Q2, P);  // g = g_{T,-Q2}(P)
     sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f * g_{T,-Q2}(P)
     sm9_fp12_mul(f_den, f_den, g_den);
-    sm9_twist_point_add_full(T, T, Q2);  // T = T - Q2
+
+//    sm9_twist_point_add_null(T, T, Q2);  // T = T - Q2
+
     // g)
     sm9_fp12_inv(f_den, f_den);  // f_den = f_den^{-1}
     sm9_fp12_mul(r, f_num, f_den);  // r = f_num*f_den = f
