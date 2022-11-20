@@ -12,7 +12,7 @@ if (CMAKE_VERSION VERSION_LESS "3.1")
 else ()
   set (CMAKE_C_STANDARD 99)
 endif ()
-
+set (CMAKE_C_FLAGS " -O2 ${CMAKE_C_FLAGS}")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mrdrnd -mrdseed")
 
 include_directories(include)

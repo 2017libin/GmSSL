@@ -14,7 +14,7 @@
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
 #include <gmssl/rand.h>
-
+//#include "debug.h"
 
 static int sm9_bn_equ_hex(const sm9_bn_t a, const char *hex)
 {
@@ -499,14 +499,10 @@ int test_sm9_pairing() {
 	sm9_fp12_t s;
 	sm9_bn_t k;
 	int j = 1;
-	
+	#if 1
 	// 测试性能1：使用同样的输入进行测试
-	double begin, end;
-	size_t count=1;
-	begin = clock();
-	for (size_t i = 0; i < count; i++)
-	{
-		sm9_pairing(r, SM9_Ppubs, SM9_P1);
+	//     (1)正确性测试：
+	sm9_pairing(r, SM9_Ppubs, SM9_P1);
 		sm9_fp12_print("r1", r);
         sm9_pairing_fast(r2, SM9_Ppubs, SM9_P1);
         sm9_fp12_print("r2", r2);
@@ -515,12 +511,20 @@ int test_sm9_pairing() {
         }else{
             printf("no equ\n");
         }
-	}
-	end = clock();
-	printf("run %d times, total time: %f s, one time: %f s\n", \
-	 count, (end-begin)/CLOCKS_PER_SEC, (end-begin)/CLOCKS_PER_SEC/count);
 	
+
+	//     (2)性能测试：
+	//PERFORMANCE_TEST_NEW("SM9 GMSSL Pairing ",sm9_pairing(r, SM9_Ppubs, SM9_P1));
+	//PERFORMANCE_TEST_NEW("fast SM9 GMSSL Pairing ",sm9_pairing_fast(r, SM9_Ppubs, SM9_P1));
+	//sm9_pairing_step_test(r, SM9_Ppubs, SM9_P1);
+	sm9_pairing_function_test(r, SM9_Ppubs, SM9_P1);
+	
+	return 1;
+
 	goto err;  // 提前结束程序
+	#endif
+
+
 
 	// 测试性能2：使用不同的输入进行测试
 	// clock_t begin, end;
@@ -552,6 +556,13 @@ int test_sm9_pairing() {
 	// printf("run %d times, total time: %d s, one time: %f s\n", \
 	//  count, (end-begin)/CLOCKS_PER_SEC, ((double)end-begin)/CLOCKS_PER_SEC/count);
 	// goto err;  // 提前结束程序
+
+	// 测试性能3：使用不同的输入进行测试
+	#if 1
+
+	#endif
+
+
 
 	sm9_fp12_from_hex(s, hex_pairing1);
 	if (!sm9_fp12_equ(r, s)) goto err; ++j;

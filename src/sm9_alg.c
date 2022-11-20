@@ -18,7 +18,7 @@
 #include <gmssl/sm9.h>
 #include <gmssl/error.h>
 #include <gmssl/endian.h>
-
+#include "../tests/debug.h"
 
 const sm9_bn_t SM9_ZERO = {0,0,0,0,0,0,0,0};
 const sm9_bn_t SM9_ONE = {1,0,0,0,0,0,0,0};
@@ -2154,7 +2154,7 @@ void sm9_fp12_mul_sparse2(sm9_fp12_t r, sm9_fp12_t a, sm9_fp12_t b){
 /*------------------------- 新增函数 end --------------------------------*/
 
 /***************性能测试代码*******************/
-#include <sys/times.h>
+//#include <sys/times.h>
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -2205,36 +2205,10 @@ static double Time_F(int s)
 // fp12_mul和fp12_sparse性能比较
 void performance_compare_num(sm9_fp12_t a, sm9_fp12_t b){
 	sm9_fp12_t r;
-    int count;
-    int sec = 1;
-    double d = 0.0;
 
-    // 注册计时器
-    signal(SIGALRM, alarmed); 
-
-    // fp12_mul
-    alarm(sec);
-    run = 1;
-    Time_F(START);
-    for (count = 0; run && count < 0x7fffffff; count++)
-    {
-        sm9_fp12_mul(r, a, b);
-    }
-    d = Time_F(STOP);
-    printf("fp12_mul: run %d times in %.2fs\n", count, d);
-
+	PERFORMANCE_TEST_NEW("fp12_MUL",sm9_fp12_mul(r, a, b));
+	PERFORMANCE_TEST_NEW("fp12_mul_sparse",sm9_fp12_mul_sparse(r, a, b));
     // fp12_mul_sparse2
-    alarm(sec);
-    run = 1;
-    Time_F(START);
-    for (count = 0; run && count < 0x7fffffff; count++)
-    {
-        sm9_fp12_mul_sparse(r, a, b);
-    }
-    d = Time_F(STOP);
-    printf("fp12_mul_sparse: run %d times in %.2fs\n", count, d);
-
-    return 0;
 
     return 0;
 }
@@ -2242,35 +2216,12 @@ void performance_compare_num(sm9_fp12_t a, sm9_fp12_t b){
 // fp12_mul和fp12_sparse2性能比较
 void performance_compare_den(sm9_fp12_t a, sm9_fp12_t b){
 	sm9_fp12_t r;
-    int count;
-    int sec = 1;
-    double d = 0.0;
-
-    // 注册计时器
-    signal(SIGALRM, alarmed);
-
     // fp12_mul
-    alarm(sec);
-    run = 1;
-    Time_F(START);
-    for (count = 0; run && count < 0x7fffffff; count++)
-    {
-        sm9_fp12_mul(r, a, b);
-    }
-    d = Time_F(STOP);
-    printf("fp12_mul: run %d times in %.2fs\n", count, d);
-
+	PERFORMANCE_TEST_NEW("fp12_MUL",sm9_fp12_mul(r, a, b));
     // fp12_mul_sparse2
-    alarm(sec);
-    run = 1;
-    Time_F(START);
-    for (count = 0; run && count < 0x7fffffff; count++)
-    {
-        sm9_fp12_mul_sparse2(r, a, b);
-    }
-    d = Time_F(STOP);
-    printf("fp12_mul_sparse2: run %d times in %.2fs\n", count, d);
+	PERFORMANCE_TEST_NEW("fp12_mul_sparse",sm9_fp12_mul_sparse2(r, a, b));
 
+   
     return 0;
 }
 /*************** 性能测试代码 end *******************/
@@ -2439,6 +2390,164 @@ void sm9_pairing_fast(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P
     sm9_fp12_mul(r, f_num, f_den);  // r = f_num*f_den = f
     sm9_final_exponent(r, r);  // r = f^{(q^12-1)/r}
 }
+
+/////////////////////////////
+///////function test/////////
+/////////////////////////////
+
+void sm9_pairing_function_test(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
+
+	// a)
+	const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
+
+	SM9_TWIST_POINT _T, *T = &_T;
+	SM9_TWIST_POINT _Q1, *Q1 = &_Q1;
+	SM9_TWIST_POINT _Q2, *Q2 = &_Q2;
+
+	sm9_fp12_t f_num;
+	sm9_fp12_t f_den, tmp;
+	sm9_fp12_t g_num;
+	sm9_fp12_t g_den;
+
+	int i;
+
+	// b)
+	sm9_twist_point_copy(T, Q);
+	sm9_fp12_set_one(f_num);
+	sm9_fp12_set_one(f_den);
+
+	sm9_fp12_t t1, t2;
+	PERFORMANCE_TEST_NEW("sm9_fp12_sqr",sm9_fp12_sqr(f_num, f_num));
+	PERFORMANCE_TEST_NEW("sm9_fp12_mul",sm9_fp12_mul(f_num, f_num, g_num));
+	PERFORMANCE_TEST_NEW("sm9_fp12_inv",sm9_fp12_inv(f_den, f_den));
+	PERFORMANCE_TEST_NEW("sm9_twist_point_dbl",sm9_twist_point_dbl(T, T));
+	PERFORMANCE_TEST_NEW("sm9_eval_g_line",sm9_eval_g_line(g_num, g_den, T, Q, P));
+	PERFORMANCE_TEST_NEW("sm9 frobenius map",sm9_twist_point_pi1(Q1, Q));
+	
+	PERFORMANCE_TEST_NEW("sm9_eval_g_tangent",sm9_eval_g_tangent(g_num, g_den, T, P));
+	PERFORMANCE_TEST_NEW("sm9_twist_point_add_full",sm9_twist_point_add_full(T, T, Q));
+	PERFORMANCE_TEST_NEW("sm9_final_exponent",sm9_final_exponent(r, r));
+
+}
+
+/////////////////////////////
+//////////step test//////////
+/////////////////////////////
+
+void sm9_pairing_step_test(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
+
+
+	int count;
+    int sec = 1;
+    double d = 0.0;
+
+    // 注册计时器
+    signal(SIGALRM, alarmed);
+
+    // Miller part
+    alarm(sec);
+    run = 1;
+    Time_F(START);
+    for (count = 0; run && count < 0x7fffffff; count++)
+    {
+        
+	// a)
+	const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
+
+	SM9_TWIST_POINT _T, *T = &_T;
+	SM9_TWIST_POINT _Q1, *Q1 = &_Q1;
+	SM9_TWIST_POINT _Q2, *Q2 = &_Q2;
+
+	sm9_fp12_t f_num;
+	sm9_fp12_t f_den, tmp;
+	sm9_fp12_t g_num;
+	sm9_fp12_t g_den;
+
+	int i;
+
+	// b)
+	sm9_twist_point_copy(T, Q);
+	sm9_fp12_set_one(f_num);
+	sm9_fp12_set_one(f_den);
+
+	sm9_fp12_t t1, t2;
+	for (i = 0; i < strlen(abits); i++) {
+		// c)
+		sm9_fp12_sqr(f_num, f_num);  // c.1) f = f^2
+		sm9_fp12_sqr(f_den, f_den);
+
+		sm9_eval_g_tangent(g_num, g_den, T, P);  // c.1) g = g_{T,T}(P)
+
+		sm9_fp12_mul(f_num, f_num, g_num);
+		sm9_fp12_mul(f_den, f_den, g_den);
+
+		sm9_twist_point_dbl(T, T);  // c.1) T = [2]T
+
+		// c.2)
+		if (abits[i] == '1') {
+			sm9_eval_g_line(g_num, g_den, T, Q, P);  // g = g_{T,Q}(P)
+			sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g_{T,Q}(P)
+			sm9_fp12_mul(f_den, f_den, g_den);
+			sm9_twist_point_add_full(T, T, Q);  // T = T + Q
+		}
+	}
+	
+	// d)
+	sm9_twist_point_pi1(Q1, Q);  // Q1 = pi_q(Q)
+	sm9_twist_point_neg_pi2(Q2, Q);  // Q2 = pi_{q^2}(Q), Q2 = -Q2
+	// e)
+	sm9_eval_g_line(g_num, g_den, T, Q1, P);  // g = g_{T,Q1}(P)
+	sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f * g_{T,Q1}(P)
+	sm9_fp12_mul(f_den, f_den, g_den);
+	sm9_twist_point_add_full(T, T, Q1);  // T = T + Q1
+	// f)
+	sm9_eval_g_line(g_num, g_den, T, Q2, P);  // g = g_{T,-Q2}(P) 
+	sm9_fp12_mul(f_num, f_num, g_num);  // f = f * g = f * g_{T,-Q2}(P)
+	sm9_fp12_mul(f_den, f_den, g_den);
+	sm9_twist_point_add_full(T, T, Q2);  // T = T - Q2
+	// g)
+	sm9_fp12_inv(f_den, f_den);  // f_den = f_den^{-1}
+	sm9_fp12_mul(r, f_num, f_den);  // r = f_num*f_den = f
+    }
+    d = Time_F(STOP);
+    printf("Rate GMSSL Miller part: run %d times in %.2fs\n", count, d);
+
+
+
+	    // Final exp
+    alarm(sec);
+    run = 1;
+    Time_F(START);
+    for (count = 0; run && count < 0x7fffffff; count++)
+    {
+       
+	sm9_final_exponent(r, r);  // r = f^{(q^12-1)/r}
+    }
+    d = Time_F(STOP);
+    printf("Rate GMSSL Final EXP part: run %d times in %.2fs\n", count, d);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void sm9_fn_add(sm9_fn_t r, const sm9_fn_t a, const sm9_fn_t b)
 {
@@ -2715,3 +2824,6 @@ int sm9_twist_point_from_uncompressed_octets(SM9_TWIST_POINT *P, const uint8_t o
 	if (!sm9_twist_point_is_on_curve(P)) return -1;
 	return 1;
 }
+
+
+
