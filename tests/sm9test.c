@@ -491,7 +491,7 @@ err:
 	"934FDDA6D3AB48C8571CE2354B79742AA498CB8CDDE6BD1FA5946345A1A652F6"
 
 #include <time.h>
-
+//#include "../tests/debug.h"
 int test_sm9_pairing() {
 	SM9_TWIST_POINT p;
 	SM9_POINT q;
@@ -516,7 +516,7 @@ int test_sm9_pairing() {
 	//     (2)性能测试：
 	//PERFORMANCE_TEST_NEW("SM9 GMSSL Pairing ",sm9_pairing(r, SM9_Ppubs, SM9_P1));
 	//PERFORMANCE_TEST_NEW("fast SM9 GMSSL Pairing ",sm9_pairing_fast(r, SM9_Ppubs, SM9_P1));
-	//sm9_pairing_step_test(r, SM9_Ppubs, SM9_P1);
+	sm9_pairing_step_test(r, SM9_Ppubs, SM9_P1);
 	sm9_pairing_function_test(r, SM9_Ppubs, SM9_P1);
 	
 	return 1;

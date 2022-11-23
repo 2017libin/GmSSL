@@ -2397,6 +2397,8 @@ void sm9_pairing_fast(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P
 
 void sm9_pairing_function_test(sm9_fp12_t r, const SM9_TWIST_POINT *Q, const SM9_POINT *P) {
 
+	PERFORMANCE_TEST_NEW("SM9 GMSSL Pairing ",sm9_pairing(r, Q, P));
+	PERFORMANCE_TEST_NEW("fast SM9 GMSSL Pairing ",sm9_pairing_fast(r, Q, P));
 	// a)
 	const char *abits = "00100000000000000000000000000000000000010000101011101100100111110";
 
