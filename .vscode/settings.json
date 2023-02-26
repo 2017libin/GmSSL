@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "endian.h": "c",
+        "error.h": "c",
+        "sm9.h": "c",
+        "asn1.h": "c",
+        "sm3.h": "c",
+        "mem.h": "c",
+        "stddef.h": "c",
+        "oid.h": "c"
+    }
+}

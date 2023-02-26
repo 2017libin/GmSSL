@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/chase511/code/GmSSL/demos/sm9/sm9_sign_demo.c
+stdio.h
+-
+string.h
+-
+stdlib.h
+-
+gmssl/sm9.h
+-
+gmssl/error.h
+-
+

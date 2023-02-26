@@ -1,0 +1,1 @@
+/usr/bin/cc   -rdynamic CMakeFiles/sm9_sign_demo.dir/sm9_sign_demo.c.o  -o sm9_sign_demo   -L/usr/local/lib  -Wl,-rpath,/usr/local/lib -lgmssl 

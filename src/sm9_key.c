@@ -376,7 +376,7 @@ int sm9_enc_master_key_generate(SM9_ENC_MASTER_KEY *msk)
 int sm9_sign_master_key_extract_key(SM9_SIGN_MASTER_KEY *msk, const char *id, size_t idlen, SM9_SIGN_KEY *key)
 {
 	sm9_fn_t t;
-
+	
 	// t1 = H1(ID || hid, N) + ks
 	sm9_hash1(t, id, idlen, SM9_HID_SIGN);
 	sm9_fn_add(t, t, msk->ks);

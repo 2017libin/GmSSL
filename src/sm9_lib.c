@@ -118,8 +118,8 @@ int sm9_do_sign(const SM9_SIGN_KEY *key, const SM3_CTX *sm3_ctx, SM9_SIGNATURE *
 	// A1: g = e(P1, Ppubs)
 	sm9_pairing(g, &key->Ppubs, SM9_P1);
 
-	sm9_fp12_print("g: ", g);
-	sm9_twist_point_print(stdout, 1, 0, "SM9_P2", SM9_P2);
+	// sm9_fp12_print("g: ", g);
+	// sm9_twist_point_print(stdout, 1, 0, "SM9_P2", SM9_P2);
 	return 0;
 	do {
 		// A2: rand r in [1, N-1]
